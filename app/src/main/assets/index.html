@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ألعاب صغيرة</title>
+<style>
+:root{
+  --bg:#e9eef8;--surface:#ffffff;--ink:#1b2340;--muted:#5d6788;--line:#cfd7ea;
+  --x:#d6336c;--o:#0b8f9c;--accent:#3b4cca;--on-accent:#ffffff;--win:#ffe58a;
+  color-scheme:light;box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1530;--surface:#182046;--ink:#eef1ff;--muted:#a3acd1;--line:#2a3566;
+    --x:#ff6b9d;--o:#4fd1dc;--accent:#8c9bff;--on-accent:#0f1530;--win:#5a4a10;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1530;--surface:#182046;--ink:#eef1ff;--muted:#a3acd1;--line:#2a3566;
+  --x:#ff6b9d;--o:#4fd1dc;--accent:#8c9bff;--on-accent:#0f1530;--win:#5a4a10;color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:"Tajawal",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;font-weight:500;line-height:1.6}
+.app{max-width:420px;margin:0 auto;padding:20px 16px 32px}
+h1{font-family:"Lalezar","Tajawal",system-ui,sans-serif;font-weight:800;font-size:2.4rem;margin:4px 0 14px;letter-spacing:0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:5px;margin-bottom:18px}
+.tab{border:0;background:transparent;border-radius:11px;padding:10px;font-weight:700;font-size:1.05rem}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--on-accent)}
+.row{display:flex;gap:8px;margin-bottom:12px}
+.chip{flex:1;border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 6px;font-weight:700}
+.chip[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.status{min-height:2em;font-size:1.25rem;font-weight:700;text-align:center;margin:4px 0 12px}
+.score{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;text-align:center}
+.score div{background:var(--surface);border:2px solid var(--line);border-radius:12px;padding:6px 0}
+.score b{display:block;font-size:1.5rem;line-height:1.2}
+.score span{color:var(--muted);font-size:.9rem}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;direction:ltr}
+.cell{aspect-ratio:1;border:2px solid var(--line);background:var(--surface);border-radius:14px;font-family:"Lalezar",system-ui,sans-serif;font-weight:800;font-size:3.6rem;line-height:1;padding:0}
+.cell.x{color:var(--x)}.cell.o{color:var(--o)}
+.cell.win{background:var(--win);border-color:var(--accent)}
+.cell:disabled{cursor:default}
+.main-btn{display:block;width:100%;margin-top:16px;border:0;border-radius:14px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:1.1rem;padding:13px}
+.stats{display:flex;justify-content:space-between;margin-bottom:10px;font-weight:700}
+.stats span{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;direction:ltr}
+.card{aspect-ratio:1;border:2px solid var(--line);background:var(--accent);color:transparent;border-radius:14px;font-size:2rem;padding:0;transition:transform .2s,background .2s}
+.card.open,.card.done{background:var(--surface);color:var(--ink)}
+.card.open{transform:scale(1.04)}
+.card.done{border-color:var(--o);opacity:.75}
+@media (prefers-reduced-motion:reduce){.card{transition:none}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main class="app">
+  <h1>ألعاب صغيرة</h1>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t-xo" aria-selected="true" aria-controls="xo">إكس أو</button>
+    <button class="tab" role="tab" id="t-mem" aria-selected="false" aria-controls="mem">لعبة الذاكرة</button>
+  </div>
+
+  <section id="xo" role="tabpanel" aria-labelledby="t-xo">
+    <div class="row">
+      <button class="chip" id="m-cpu" aria-pressed="true">ضد الجوال</button>
+      <button class="chip" id="m-friend" aria-pressed="false">ضد صديق</button>
+    </div>
+    <div class="status" id="xo-status" aria-live="polite"></div>
+    <div class="score">
+      <div><b id="sx">0</b><span>فوز X</span></div>
+      <div><b id="sd">0</b><span>تعادل</span></div>
+      <div><b id="so">0</b><span>فوز O</span></div>
+    </div>
+    <div class="board" id="board"></div>
+    <button class="main-btn" id="xo-new">جولة جديدة</button>
+  </section>
+
+  <section id="mem" role="tabpanel" aria-labelledby="t-mem" hidden>
+    <div class="stats">
+      <div><span>الحركات: </span><b id="moves">0</b></div>
+      <div><span>أفضل نتيجة: </span><b id="best">-</b></div>
+    </div>
+    <div class="status" id="mem-status" aria-live="polite">اقلب بطاقتين وابحث عن التطابق</div>
+    <div class="grid" id="grid"></div>
+    <button class="main-btn" id="mem-new">ابدأ من جديد</button>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+/* التبديل بين اللعبتين */
+function show(name){
+  for (const n of ["xo","mem"]) {
+    $(n).hidden = n !== name;
+    $("t-" + n).setAttribute("aria-selected", String(n === name));
+  }
+}
+$("t-xo").onclick = () => show("xo");
+$("t-mem").onclick = () => show("mem");
+
+/* ===== إكس أو ===== */
+const LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+let b, turn, over, vsCpu = true, score = {X:0, D:0, O:0};
+
+function findWin(bd){
+  for (const l of LINES) {
+    const [p,q,r] = l;
+    if (bd[p] && bd[p] === bd[q] && bd[p] === bd[r]) return {who: bd[p], line: l};
+  }
+  return null;
+}
+function xoStatus(t){ $("xo-status").textContent = t; }
+function drawBoard(winLine){
+  $("board").innerHTML = "";
+  b.forEach((v, i) => {
+    const c = document.createElement("button");
+    c.className = "cell" + (v ? " " + v.toLowerCase() : "") + (winLine && winLine.includes(i) ? " win" : "");
+    c.textContent = v || "";
+    c.setAttribute("aria-label", "خانة " + (i + 1) + (v ? ": " + v : ""));
+    c.disabled = over || !!v;
+    c.onclick = () => { if (!(vsCpu && turn === "O")) play(i); };
+    $("board").appendChild(c);
+  });
+}
+function xoReset(){
+  b = Array(9).fill(null); turn = "X"; over = false;
+  drawBoard();
+  xoStatus(vsCpu ? "دورك (X)" : "دور X");
+}
+function updateScore(){ $("sx").textContent = score.X; $("sd").textContent = score.D; $("so").textContent = score.O; }
+function play(i){
+  if (over || b[i]) return;
+  b[i] = turn;
+  const w = findWin(b);
+  if (w) {
+    over = true; score[w.who]++; updateScore(); drawBoard(w.line);
+    xoStatus(vsCpu ? (w.who === "X" ? "فزت! 🎉" : "فاز الجوال هذه المرة") : "فاز " + w.who + " 🎉");
+    return;
+  }
+  if (b.every(Boolean)) {
+    over = true; score.D++; updateScore(); drawBoard(); xoStatus("تعادل");
+    return;
+  }
+  turn = turn === "X" ? "O" : "X";
+  drawBoard();
+  if (vsCpu && turn === "O") { xoStatus("الجوال يفكر..."); setTimeout(cpuMove, 450); }
+  else xoStatus(vsCpu ? "دورك (X)" : "دور " + turn);
+}
+function cpuMove(){
+  const free = b.map((v, i) => v ? null : i).filter(i => i !== null);
+  const tryWin = (p) => free.find(i => { b[i] = p; const w = findWin(b); b[i] = null; return w; });
+  let m = tryWin("O");
+  if (m === undefined) m = tryWin("X");
+  if (m === undefined && !b[4]) m = 4;
+  if (m === undefined) {
+    const corners = [0,2,6,8].filter(i => !b[i]);
+    const pool = corners.length ? corners : free;
+    m = pool[Math.floor(Math.random() * pool.length)];
+  }
+  play(m);
+}
+function setMode(cpu){
+  vsCpu = cpu;
+  $("m-cpu").setAttribute("aria-pressed", String(cpu));
+  $("m-friend").setAttribute("aria-pressed", String(!cpu));
+  score = {X:0, D:0, O:0}; updateScore(); xoReset();
+}
+$("m-cpu").onclick = () => setMode(true);
+$("m-friend").onclick = () => setMode(false);
+$("xo-new").onclick = xoReset;
+xoReset();
+
+/* ===== لعبة الذاكرة ===== */
+const FACES = ["🍉","🚀","🐪","⚽","🌙","🎧","🍋","🦊"];
+let first = null, lock = false, moves = 0, pairs = 0, best = null;
+try { best = parseInt(localStorage.getItem("memBest"), 10) || null; } catch (e) { best = null; }
+function showBest(){ $("best").textContent = best || "-"; }
+
+function memReset(){
+  const deck = [...FACES, ...FACES];
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  first = null; lock = false; moves = 0; pairs = 0;
+  $("moves").textContent = 0; showBest();
+  $("mem-status").textContent = "اقلب بطاقتين وابحث عن التطابق";
+  $("grid").innerHTML = "";
+  deck.forEach((f) => {
+    const c = document.createElement("button");
+    c.className = "card"; c.dataset.f = f; c.textContent = f;
+    c.setAttribute("aria-label", "بطاقة مغلقة");
+    c.onclick = () => flip(c);
+    $("grid").appendChild(c);
+  });
+}
+function flip(c){
+  if (lock || c === first || c.classList.contains("done")) return;
+  c.classList.add("open");
+  if (!first) { first = c; return; }
+  moves++; $("moves").textContent = moves;
+  if (first.dataset.f === c.dataset.f) {
+    first.classList.replace("open", "done"); c.classList.replace("open", "done");
+    first = null; pairs++;
+    if (pairs === FACES.length) finish();
+  } else {
+    lock = true;
+    const a = first; first = null;
+    setTimeout(() => { a.classList.remove("open"); c.classList.remove("open"); lock = false; }, 800);
+  }
+}
+function finish(){
+  let msg = "أنهيتها في " + moves + " حركة 🎉";
+  if (!best || moves < best) {
+    best = moves; showBest(); msg += " وهذه أفضل نتيجة لك";
+    try { localStorage.setItem("memBest", String(best)); } catch (e) {}
+  }
+  $("mem-status").textContent = msg;
+}
+$("mem-new").onclick = memReset;
+memReset();
+</script>
+</body>
+</html>
